@@ -1,60 +1,55 @@
 package org.jftm.contoller;
 
 import org.jftm.entity.Customer;
-import org.jftm.exception.CustomerNotFoundException;
-import org.jftm.repository.CustomerRepository;
+import org.jftm.service.CustomerService;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api")
 public class CustomerController {
-    private CustomerRepository customerRepository;
 
-    public CustomerController(CustomerRepository customerRepository) {
-        this.customerRepository = customerRepository;
+    private CustomerService customerService;
+
+    public CustomerController(CustomerService customerService) {
+        this.customerService = customerService;
     }
 
     @GetMapping("/customers")
     public List<Customer> getAllCustomers(){
-        return customerRepository.findAll();
+        return customerService.findAll();
     }
 
     @GetMapping("/customers/{id}")
     public Customer getCustomer(@PathVariable int id) {
-        Optional<Customer> customer = customerRepository.findById(id);
-
-        if (!customer.isPresent()) {
-            throw new CustomerNotFoundException("Customer with id {" + id + "} could not be found");
-        }
-
-        return customer.get();
+        return customerService.findById(id);
     }
 
     @PostMapping("/customers")
-    public ResponseEntity<Customer> createCustomer(@RequestBody Customer customer){
+    public ResponseEntity createCustomer(@RequestBody Customer customer){
+        customerService.save(customer);
 
-        return new ResponseEntity<>(customerRepository.save(customer),HttpStatus.CREATED);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Location", "/api/customers/" + customer.getId());
+
+        return new ResponseEntity(headers,HttpStatus.CREATED);
     }
 
     @PutMapping("/customers")
-    public ResponseEntity<Customer> updateCustomer(@RequestBody Customer customer){
+    public ResponseEntity updateCustomer(@RequestBody Customer customer){
 
-        return new ResponseEntity<>(customerRepository.save(customer),HttpStatus.OK);
+        customerService.save(customer);
+
+        return new ResponseEntity(HttpStatus.OK);
     }
 
     @DeleteMapping("/customers/{id}")
     public String deleteCustomer(@PathVariable int id) {
-        Optional<Customer> customer = customerRepository.findById(id);
 
-        if (!customer.isPresent()) {
-            throw new CustomerNotFoundException("Customer with id {" + id + "} could not be found");
-        }
-
-        customerRepository.delete(customer.get());
+        customerService.deleteById(id);
 
         return "Deleted customer id - " + id;
     }
